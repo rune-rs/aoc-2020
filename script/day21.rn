@@ -13,7 +13,7 @@ fn find_all_allergens(allergen_table) {
     let known_allergens = HashMap::new();
 
     while !allergen_table.is_empty() {
-        for (allergen, ingredient_sets) in allergen_table {
+        for (allergen, ingredient_sets) in allergen_table.iter().collect::<Vec>() {
             let first_ingredient_set = ingredient_sets[0];
             let overlap = ingredient_sets.iter().skip(1).fold(first_ingredient_set, |all, this| HashSet::from_iter(all.intersection(this)));
             if overlap.len() == 1 {
