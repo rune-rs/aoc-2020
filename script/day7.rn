@@ -6,15 +6,15 @@ fn parse_rule(line) {
 
     let line = line.skip(2); // bags contain
 
-    let v = HashMap::from(chunks(line, 4).map(|[num, adj, color, BAG]| {
-        (`${adj}-${color}`, std::string::parse_int(num).unwrap())
+    let v = HashMap::from_iter(chunks(line, 4).map(|[num, adj, color, BAG]| {
+        (`${adj}-${color}`, i64::parse(num).unwrap())
     }));
 
     (`${adj}-${color}`, v)
 }
 
 fn invert_graph(graph) {
-    let pre_computed_bags = HashMap::from(graph.keys().map(|v| (v, HashSet::new())));
+    let pre_computed_bags = HashMap::from_iter(graph.keys().map(|v| (v, HashSet::new())));
     graph
         .iter()
         .flat_map(
@@ -31,9 +31,9 @@ fn invert_graph(graph) {
 
 fn find_all_paths_to(graph, color) {
     graph.get(color).map(|containees| {
-        HashSet::from(
+        HashSet::from_iter(
             containees.union(
-                HashSet::from(
+                HashSet::from_iter(
                     containees
                         .iter()
                         .flat_map(|color| find_all_paths_to(graph, color))
@@ -48,12 +48,12 @@ fn accumulate_bags(graph, color) {
         .get(color)?
         .iter()
         .map(|(col, count)| accumulate_bags(graph, col)  * count + count)
-        .fold(0, int::wrapping_add)
+        .fold(0, i64::wrapping_add)
 }
 
 pub async fn run() {
     let split_space = capply1_1(String::split, ' ');
-    let graph = HashMap::from(
+    let graph = HashMap::from_iter(
         read_file("inputs/day7.txt")
             .await?
             .map(split_space)

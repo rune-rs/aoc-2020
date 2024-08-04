@@ -13,7 +13,7 @@ fn instruction(line) {
     let inst = parts.next()?;
     let step = parts.next()?;
 
-    let step = std::string::parse_int(step).unwrap();
+    let step = i64::parse(step).unwrap();
     match inst {
         "nop" => Inst::Nop(step),
         "acc" => Inst::Acc(step),
@@ -68,7 +68,7 @@ async fn test_part1() {
     let inputs = read_file("inputs/day8_test.txt")
         .await?
         .map(instruction)
-        .collect_vec();
+        .collect::<Vec>();
 
     assert_eq!(eval(inputs), Err(5));
 }
@@ -78,7 +78,7 @@ async fn test_part2() {
     let inputs = read_file("inputs/day8_test.txt")
         .await?
         .map(instruction)
-        .collect_vec();
+        .collect::<Vec>();
 
     assert_eq!(try_replace(inputs), Ok(8));
 }
@@ -87,7 +87,7 @@ pub async fn run() {
     let inputs = read_file("inputs/day8.txt")
         .await?
         .map(instruction)
-        .collect_vec();
+        .collect::<Vec>();
 
     let Err(a) = eval(inputs);
     let b = try_replace(inputs)?;

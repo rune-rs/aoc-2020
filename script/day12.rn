@@ -1,5 +1,5 @@
 use crate::utils::read_file;
-use std::int::abs;
+use std::i64::abs;
 
 enum Command {
     North(value),
@@ -78,7 +78,7 @@ fn move_waypoint_command((transform, waypoint), command) {
 }
 
 pub async fn run() {
-    let commands = read_file("inputs/day12.txt").await?.map(Command::from_string).collect_vec();
+    let commands = read_file("inputs/day12.txt").await?.map(Command::from_string).collect::<Vec>();
 
     let final_position = commands
         .iter()
@@ -118,7 +118,7 @@ fn test_part1() {
         "F11",
     ];
 
-    let commands = raw.iter().map(Command::from_string).collect_vec();
+    let commands = raw.iter().map(Command::from_string).collect::<Vec>();
     let final_position = commands.iter().fold((0, 0, 0), apply_command);
     assert_eq!(abs(final_position.0) + abs(final_position.1), 25);
 }
@@ -147,7 +147,7 @@ fn test_part2() {
         "F11",
     ];
 
-    let commands = raw.iter().map(Command::from_string).collect_vec();
+    let commands = raw.iter().map(Command::from_string).collect::<Vec>();
     let (final_position, _) = commands.iter().fold(((0, 0), (10, 1)), move_waypoint_command);
     assert_eq!(abs(final_position.0) + abs(final_position.1), 286);
 }

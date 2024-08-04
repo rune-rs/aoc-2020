@@ -47,12 +47,12 @@ fn count_paths_topological_forward(values, current_idx, current_joltage, cache) 
 // this is ~ O(V^3)
 fn count_paths_floyd_warshall(values, current_idx, current_joltage, cache) {
     let graph = [];
-    let values = [0].iter().chain(values.iter()).collect_vec();
+    let values = [0].iter().chain(values.iter()).collect::<Vec>();
 
     let graph = (0..values.len())
         .iter()
-        .map(|_| (0..values.len()).iter().map(|_| 0).collect_vec())
-        .collect_vec();
+        .map(|_| (0..values.len()).iter().map(|_| 0).collect::<Vec>())
+        .collect::<Vec>();
 
 
     for idx in 0..values.len() {
@@ -90,7 +90,7 @@ fn count_paths_floyd_warshall(values, current_idx, current_joltage, cache) {
 // this is ~ O(V+E)
 fn count_paths_topological_reverse(values) {
     let cache = HashMap::new();
-    let values = values.iter().rev().collect_vec();
+    let values = values.iter().rev().collect::<Vec>();
     values.push(0);
     cache.insert(values.len() - 1, 1);
 
@@ -115,11 +115,11 @@ pub async fn run() {
     let inputs = read_file("inputs/day10.txt")
         .await?
         .filter(|v| v != "")
-        .map(std::string::parse_int)
+        .map(i64::parse)
         .map(Result::unwrap)
-        .collect_vec();
+        .collect::<Vec>();
 
-    inputs.sort_int();
+    inputs.sort();
 
     let task1 = get_joltage_all_chain(inputs);
     assert_eq!(task1, 1920);
@@ -135,11 +135,11 @@ async fn test_part1() {
     let inputs = read_file("inputs/day10_test.txt")
         .await?
         .filter(|v| v != "")
-        .map(std::string::parse_int)
+        .map(i64::parse)
         .map(Result::unwrap)
-        .collect_vec();
+        .collect::<Vec>();
 
-    inputs.sort_int();
+    inputs.sort();
 
     assert_eq!(get_joltage_all_chain(inputs), 220);
 }
@@ -150,11 +150,11 @@ async fn test_part2() {
     let inputs = read_file("inputs/day10_test.txt")
         .await?
         .filter(|v| v != "")
-        .map(std::string::parse_int)
+        .map(i64::parse)
         .map(Result::unwrap)
-        .collect_vec();
+        .collect::<Vec>();
 
-    inputs.sort_int();
+    inputs.sort();
     assert_eq!(
         count_paths_topological_forward(inputs, -1, 0, HashMap::new()), 19208);
 }

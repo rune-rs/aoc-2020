@@ -32,7 +32,7 @@ pub fn parse_masks_and_mem(it) {
             let lhs = rest.next()?;
             let rhs = rest.next()?;
             let mem = lhs.chars().skip(4).take(lhs.len() - 5).fold(String::new(), |a, v| { a.push(v); a });
-            out.push(Command::Mem(std::string::parse_int(mem)?, std::string::parse_int(rhs)?));
+            out.push(Command::Mem(i64::parse(mem)?, i64::parse(rhs)?));
         }
     }
 
@@ -117,11 +117,11 @@ pub async fn run() {
     let it = parse_masks_and_mem(read_file("inputs/day14.txt").await?)?;
 
     let res = run_commands(it);
-    let sum = res.values().sum();
+    let sum = res.values().sum::<i64>();
 
 
     let res = run_commands2(it);
-    let sum2 = res.values().sum();
+    let sum2 = res.values().sum::<i64>();
 
     assert_eq!(sum, 9615006043476);
     assert_eq!(sum2, 4275496544925);
@@ -142,7 +142,7 @@ fn test_part1() {
     assert_eq!(read_value(res, 7), 101);
     assert_eq!(read_value(res, 8), 64);
 
-    let sum = res.values().sum();
+    let sum = res.values().sum::<i64>();
     assert_eq!(sum, 165);
 }
 
@@ -156,7 +156,7 @@ fn test_part2() {
         Command::Mask("00000000000000000000000000000000X0XX"),
         Command::Mem(26, 1),
     ]);
-    let sum = res.values().sum();
+    let sum = res.values().sum::<i64>();
     assert_eq!(sum, 208);
 }
 

@@ -1,7 +1,7 @@
 use crate::utils::read_file;
 use std::collections::{HashMap, HashSet};
 pub async fn run() {
-    let products = read_file("inputs/day21.txt").await?.map(parse_item).collect_vec();
+    let products = read_file("inputs/day21.txt").await?.map(parse_item).collect::<Vec>();
     let (allergen_table, all_ingredients) = build_list_and_table(products);
     let known_allergens = find_all_allergens(allergen_table);
     let non_allergens = find_non_allergens(known_allergens, all_ingredients);
@@ -15,7 +15,7 @@ fn find_all_allergens(allergen_table) {
     while !allergen_table.is_empty() {
         for (allergen, ingredient_sets) in allergen_table {
             let first_ingredient_set = ingredient_sets[0];
-            let overlap = ingredient_sets.iter().skip(1).fold(first_ingredient_set, |all, this| HashSet::from(all.intersection(this)));
+            let overlap = ingredient_sets.iter().skip(1).fold(first_ingredient_set, |all, this| HashSet::from_iter(all.intersection(this)));
             if overlap.len() == 1 {
                 let ingredient = overlap.iter().take(1).next()?;
                 known_allergens[allergen] = ingredient;
@@ -41,7 +41,7 @@ fn build_list_and_table(products) {
                 allergen_table[allergen] = [];
             }
 
-            let ingredient_set = HashSet::from(ingredients.iter());
+            let ingredient_set = HashSet::from_iter(ingredients.iter());
             allergen_table[allergen].push(ingredient_set);
         }
         all_ingredients.extend(ingredients);
@@ -51,11 +51,11 @@ fn build_list_and_table(products) {
 }
 
 fn build_allergen_list(known_allergens) {
-    let allergen_vec = known_allergens.iter().collect_vec();
+    let allergen_vec = known_allergens.iter().collect::<Vec>();
 
     allergen_vec.sort_by(|(a1, i1), (a2, i2)| a1.cmp(a2));
 
-    let ingredients = allergen_vec.iter().map(|v| v.1).collect_vec();
+    let ingredients = allergen_vec.iter().map(|v| v.1).collect::<Vec>();
     let first = ingredients[0];
     ingredients.iter().skip(1).fold(first, |s,v| s + "," + v)
 }
@@ -105,7 +105,7 @@ trh fvjkl sbzzf mxmxvkd (contains dairy)
 sqjhc fvjkl (contains soy)
 sqjhc mxmxvkd sbzzf (contains fish)";
 
-    let products = contents.split('\n').map(parse_item).collect_vec();
+    let products = contents.split('\n').map(parse_item).collect::<Vec>();
     let (allergen_table, all_ingredients) = build_list_and_table(products);
     let known_allergens = find_all_allergens(allergen_table);
     let non_allergens = find_non_allergens(known_allergens, all_ingredients);
@@ -120,7 +120,7 @@ trh fvjkl sbzzf mxmxvkd (contains dairy)
 sqjhc fvjkl (contains soy)
 sqjhc mxmxvkd sbzzf (contains fish)";
 
-    let products = contents.split('\n').map(parse_item).collect_vec();
+    let products = contents.split('\n').map(parse_item).collect::<Vec>();
     let (allergen_table, all_ingredients) = build_list_and_table(products);
     let known_allergens = find_all_allergens(allergen_table);
 

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 fn task1(init_sequence, max) {
     let upper = max / 100;
-    let memory = (0..upper).iter().map(|_| -1).collect_vec();
+    let memory = (0..upper).iter().map(|_| -1).collect::<Vec>();
     let high_memory = HashMap::new();
 
     for (idx, n) in init_sequence.iter().enumerate().take(init_sequence.len() - 1) {

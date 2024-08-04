@@ -89,7 +89,7 @@ impl Passport {
         }
 
         let pid = self.pid;
-        if pid.len() != 9 || std::string::parse_int(pid).is_err() {
+        if pid.len() != 9 || i64::parse(pid).is_err() {
             return false;
         }
 
@@ -108,7 +108,7 @@ struct PassportData {
 }
 
 fn check_field_range(field, min, max) {
-    let fv = std::string::parse_int(field)?;
+    let fv = i64::parse(field)?;
     let is_ok = min <= fv && fv <= max;
     Some(is_ok)
 }
@@ -191,7 +191,7 @@ pub async fn run() {
     let items = read_file("inputs/day4.txt").await?;
     let passports = parse_all(items);
 
-    let valid = passports.collect_vec();
+    let valid = passports.collect::<Vec>();
     let filtered_count = valid.iter().filter(Passport::validate).count();
 
     (valid.len(), filtered_count)

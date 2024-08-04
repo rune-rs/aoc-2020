@@ -68,18 +68,18 @@ fn validate_all(rules, messages) {
 fn parse_input(it) {
 	let it = crate::utils::iter::batch_by_lines(it);
 	let rules = parse_rules(it.next()?);
-	let messages = it.next()?.collect_vec();
+	let messages = it.next()?.collect::<Vec>();
 
 	(rules, messages)
 }
 
 fn parse_rules(it) {
-	HashMap::from(it.map(parse_rule))
+	HashMap::from_iter(it.map(parse_rule))
 }
 
 fn parse_rule(line) {
 	let parts = line.split_str(": ");
-	let number = std::string::parse_int(parts.next()?).expect("a number");
+	let number = std::i64::parse(parts.next()?).expect("a number");
 
 	let rhs = parts.next()?;
 	let rule = parse_rule_parts(rhs)?;
@@ -104,7 +104,7 @@ fn parse_rule_parts(str) {
 				items = [];
 			},
 			_ => {
-				items.push(std::string::parse_int(p).expect("a number"));
+				items.push(std::i64::parse(p).expect("a number"));
 			}
 		}
 	}
@@ -132,7 +132,7 @@ fn flatten_rule(rule, map) {
 			Rule::Or(l1, r1)
 		},
 		Rule::Seq(vs) => {
-			let vs = vs.iter().map(|r| flatten_rule(map[r], map)).collect_vec();
+			let vs = vs.iter().map(|r| flatten_rule(map[r], map)).collect::<Vec>();
 			Rule::Seq(vs)
 		},
 		Rule::Str(v) => Rule::Str(v),

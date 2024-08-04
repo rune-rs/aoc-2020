@@ -41,7 +41,7 @@ fn find_replacement_range(inputs, target)
                                 .iter()
                                 .skip(turtle)
                                 .take(hare - turtle)
-                                .fold((999999999, 0), |(min, max), v| (std::int::min(v, min),  std::int::max(max, v)));
+                                .fold((999999999, 0), |(min, max), v| (i64::min(v, min),  i64::max(max, v)));
 
             return min + max;
         }
@@ -98,9 +98,9 @@ pub async fn run() {
     let raw = read_file("inputs/day9.txt")
         .await?
         .filter(|v| v != "")
-        .map(std::string::parse_int)
+        .map(i64::parse)
         .map(Result::unwrap)
-        .collect_vec();
+        .collect::<Vec>();
 
     let task1 = find_invalid_number(raw, 25)?;
     assert_eq!(task1, 138879426);

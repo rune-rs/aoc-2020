@@ -7,7 +7,7 @@ fn test_part1() {
     ];
 
 
-    let closest_previous_release = ids.iter().map(|id| (id, (timestamp / id + 1) * id)).collect_vec();
+    let closest_previous_release = ids.iter().map(|id| (id, (timestamp / id + 1) * id)).collect::<Vec>();
     let res = closest_previous_release.iter().fold((0, 9999), |(cid, cdep), (id, dep)| if dep < cdep { (id, dep)} else { (cid, cdep)});
     assert_eq!((res.1 - timestamp) * res.0, 295);
 }
@@ -44,8 +44,8 @@ fn task1(timestamp, ids) {
 }
 
 fn task2(ids) {
-    let cloned = ids.iter().filter(|v| v!=-1).collect_vec();
-    cloned.sort_int();
+    let cloned = ids.iter().filter(|v| v!=-1).collect::<Vec>();
+    cloned.sort();
 
     let (step_idx, step_var) = ids.iter().enumerate().find(|(idx, period)| period == cloned[cloned.len() - 1])?;
     let (second_idx, second_cvar) = ids.iter().enumerate().find(|(idx, period)| period == cloned[cloned.len() - 2])?;
@@ -57,7 +57,7 @@ fn task2(ids) {
         .map(|(idx, period)| {
             (idx - step_idx, period)
          })
-         .collect_vec();
+         .collect::<Vec>();
 
     let it = step_var;
     let it_step = step_var;

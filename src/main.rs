@@ -1,25 +1,19 @@
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::mpsc::{channel, Receiver};
+use std::sync::Arc;
+use std::time::Duration;
+use std::time::Instant;
+
 use anyhow::Result;
 use notify::{DebouncedEvent, RecommendedWatcher, RecursiveMode, Watcher};
-use rune::{
-    termcolor::{ColorChoice, StandardStream},
-    Diagnostics, EmitDiagnostics as _, LoadSourcesError, Options, Sources,
-};
-use runestick::{
-    CompileMeta, Context, FromValue, Hash, IntoTypeHash, Module, Source, Unit, UnitFn, Vm, VmError,
-    VmErrorKind, VmExecution,
-};
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    path::PathBuf,
-    rc::Rc,
-    sync::{
-        mpsc::{channel, Receiver},
-        Arc,
-    },
-    time::Duration,
-    time::Instant,
-};
+use rune::alloc::borrow::TryToOwned;
+use rune::alloc::clone::TryClone;
+use rune::compile::{meta, CompileVisitor, FileSourceLoader, MetaError, MetaRef};
+use rune::runtime::{Function, VmResult};
+use rune::termcolor::{ColorChoice, StandardStream};
+use rune::{vm_try, Any, Context, Hash, Module, Source, Unit, Vm};
+use rune::{Diagnostics, ItemBuf, Options, Sources};
 use structopt::StructOpt;
 use tokio::runtime;
 
@@ -59,18 +53,20 @@ impl FlatIter {
     }
 }
 
-#[derive(runestick::Any)]
+#[derive(Any)]
+#[rune(item = ::aoc)]
 struct CA3 {
     current_min: Vec<i32>,
     current_max: Vec<i32>,
     current_size: Vec<usize>,
-    eval_cell_fn: runestick::Function,
+    eval_cell_fn: Function,
     state: Vec<(Vec<i32>, bool)>,
     query: Vec<bool>,
 }
 
 impl CA3 {
-    fn new(dims: usize, eval_cell_fn: runestick::Function) -> Self {
+    #[rune::function(path = Self::new)]
+    fn new(dims: usize, eval_cell_fn: Function) -> Self {
         Self {
             current_min: vec![i32::MAX; dims],
             current_max: vec![i32::MIN; dims],
@@ -81,7 +77,8 @@ impl CA3 {
         }
     }
 
-    pub fn add_slot(&mut self, position: Vec<i32>, value: bool) {
+    #[rune::function(keep)]
+    fn add_slot(&mut self, position: Vec<i32>, value: bool) {
         self.current_min = position
             .iter()
             .zip(self.current_min.iter())
@@ -118,6 +115,7 @@ impl CA3 {
         }
     }
 
+    #[rune::function]
     fn render(&mut self, mut template: Vec<i32>) -> String {
         self.build_query_structure();
 
@@ -175,7 +173,8 @@ impl CA3 {
         scratch
     }
 
-    fn step(&mut self) -> Result<(), runestick::VmError> {
+    #[rune::function]
+    fn step(&mut self) -> VmResult<()> {
         self.build_query_structure();
         self.state.clear();
         let mut updates = Vec::with_capacity(self.query.len());
@@ -201,31 +200,33 @@ impl CA3 {
             };
 
             let scratch = self.prepare_scratch(&position);
-            let res = self.eval_cell_fn.call::<_, bool>((state_here, scratch))?;
+
+            let res = vm_try!(self.eval_cell_fn.call::<bool>((state_here, scratch)));
+
             if res {
                 updates.push((position.clone(), true));
             }
         }
 
         updates.drain(..).for_each(|v| self.add_slot(v.0, v.1));
-
-        Ok(())
+        VmResult::Ok(())
     }
 
+    #[rune::function]
     fn get_state(&mut self) -> Vec<bool> {
         self.build_query_structure();
         self.query.clone()
     }
 }
 
-fn ca_module() -> Result<Module, runestick::ContextError> {
-    let mut module = Module::with_crate("aoc");
+fn ca_module() -> Result<Module, rune::ContextError> {
+    let mut module = Module::with_crate("aoc")?;
     module.ty::<CA3>()?;
-    module.inst_fn("step", CA3::step)?;
-    module.inst_fn("get_state", CA3::get_state)?;
-    module.inst_fn("add_slot", CA3::add_slot)?;
-    module.inst_fn("render", CA3::render)?;
-    module.function(&["CA3", "new"], CA3::new)?;
+    module.function_meta(CA3::step)?;
+    module.function_meta(CA3::get_state)?;
+    module.function_meta(CA3::add_slot__meta)?;
+    module.function_meta(CA3::render)?;
+    module.function_meta(CA3::new)?;
 
     Ok(module)
 }
@@ -248,8 +249,8 @@ impl ScriptEngineBuilder {
         self
     }
 
-    pub fn build(self) -> anyhow::Result<ScriptEngine> {
-        let rt = runtime::Builder::new().enable_all().build().unwrap();
+    pub fn build(self) -> Result<ScriptEngine> {
+        let rt = runtime::Builder::new_multi_thread().enable_all().build()?;
         let mut context = rune_modules::with_config(true)?;
 
         for module in self.modules {
@@ -281,25 +282,26 @@ impl ScriptEngineBuilder {
 
 #[derive(Default)]
 pub struct TestVisitor {
-    test_functions: RefCell<Vec<(Hash, CompileMeta)>>,
+    test_functions: Vec<(Hash, ItemBuf)>,
 }
+
 impl TestVisitor {
     /// Convert visitor into test functions.
-    pub(crate) fn into_test_functions(self) -> Vec<(Hash, CompileMeta)> {
-        self.test_functions.into_inner()
+    pub(crate) fn into_test_functions(self) -> Vec<(Hash, ItemBuf)> {
+        self.test_functions
     }
 }
 
-impl rune::CompileVisitor for TestVisitor {
-    fn register_meta(&self, meta: &CompileMeta) {
+impl CompileVisitor for TestVisitor {
+    fn register_meta(&mut self, meta: MetaRef<'_>) -> Result<(), MetaError> {
         let type_hash = match &meta.kind {
-            runestick::CompileMetaKind::Function { is_test, type_hash } if *is_test => type_hash,
-            _ => return,
+            meta::Kind::Function { is_test, .. } if *is_test => meta.hash,
+            _ => return Ok(()),
         };
 
         self.test_functions
-            .borrow_mut()
-            .push((*type_hash, meta.clone()));
+            .push((type_hash, meta.item.try_to_owned()?));
+        Ok(())
     }
 }
 
@@ -312,13 +314,13 @@ pub struct ScriptEngine {
     sources: Sources,
     rt: runtime::Runtime,
     days: HashMap<u32, f64>,
-    tests: Vec<(Hash, CompileMeta)>,
+    tests: Vec<(Hash, ItemBuf)>,
 }
 
 impl ScriptEngine {
     fn reload(&mut self) -> Result<()> {
         let mut sources = Sources::new();
-        sources.insert(Source::from_path(&self.main_file)?);
+        sources.insert(Source::from_path(&self.main_file)?)?;
 
         let mut diagnostics = Diagnostics::without_warnings();
         let mut options = Options::default();
@@ -327,40 +329,29 @@ impl ScriptEngine {
 
         self.sources = sources;
 
-        let test_finder = Rc::new(TestVisitor::default());
-        let source_loader = Rc::new(rune::FileSourceLoader::new());
-        match rune::load_sources_with_visitor(
-            &self.context,
-            &options,
-            &mut self.sources,
-            &mut diagnostics,
-            test_finder.clone(),
-            source_loader.clone(),
-        ) {
-            Ok(unit) => {
-                self.unit = Arc::new(unit);
-                self.tests = match Rc::try_unwrap(test_finder) {
-                    Ok(visitor) => visitor.into_test_functions(),
-                    Err(_) => panic!("cannot take test_finder, something is holding a ref"),
-                };
-            }
-            Err(e @ LoadSourcesError) => {
-                let mut writer = StandardStream::stderr(ColorChoice::Always);
-                diagnostics.emit_diagnostics(&mut writer, &self.sources)?;
-                return Err(e.into());
-            }
+        let mut test_finder = TestVisitor::default();
+        let mut source_loader = FileSourceLoader::new();
+
+        let result = rune::prepare(&mut self.sources)
+            .with_context(&self.context)
+            .with_options(&options)
+            .with_diagnostics(&mut diagnostics)
+            .with_visitor(&mut test_finder)?
+            .with_source_loader(&mut source_loader)
+            .build();
+
+        if !diagnostics.is_empty() {
+            let mut writer = StandardStream::stderr(ColorChoice::Always);
+            diagnostics.emit(&mut writer, &self.sources)?;
         }
 
+        let unit = result?;
+
+        self.unit = Arc::new(unit);
+        self.tests = test_finder.into_test_functions();
+
         for day in 0..24 {
-            if self
-                .unit
-                .lookup(
-                    runestick::Item::with_item(&[&format!("day{}", day), "run"]).into_type_hash(),
-                )
-                .is_some()
-            {
-                self.days.entry(day).or_default();
-            }
+            self.days.entry(day).or_default();
         }
 
         Ok(())
@@ -368,35 +359,19 @@ impl ScriptEngine {
 
     pub fn run_tests(&mut self) -> Result<bool> {
         // TODO: use rune-tests capture_output to stop prints from tests from showing
-        let runtime = Arc::new(self.context.runtime());
+        let runtime = Arc::new(self.context.runtime()?);
 
         let start = Instant::now();
         let mut failures = HashMap::new();
 
         for test in &self.tests {
             let mut vm = Vm::new(runtime.clone(), self.unit.clone());
+            let mut execution = vm.execute(test.0, ())?;
 
-            let info = self.unit.lookup(test.0).ok_or_else(|| {
-                VmError::from(VmErrorKind::MissingEntry {
-                    hash: test.0,
-                    item: test.1.item.item.clone(),
-                })
-            })?;
-
-            let offset = match info {
-                // NB: we ignore the calling convention.
-                // everything is just async when called externally.
-                UnitFn::Offset { offset, .. } => offset,
-                _ => {
-                    return Err(VmError::from(VmErrorKind::MissingFunction { hash: test.0 }).into());
-                }
-            };
-
-            vm.set_ip(offset);
-            match self.rt.block_on(vm.async_complete()) {
+            match self.rt.block_on(execution.async_complete()).into_result() {
                 Err(e) => {
                     // TODO: store output here
-                    failures.insert(test.1.item.item.clone(), e);
+                    failures.insert(test.1.try_clone()?, e);
                     print!("F");
                 }
                 Ok(_) => {
@@ -404,6 +379,7 @@ impl ScriptEngine {
                 }
             }
         }
+
         println!("");
 
         let elapsed = start.elapsed();
@@ -414,7 +390,7 @@ impl ScriptEngine {
 
             let mut writer = StandardStream::stderr(ColorChoice::Always);
             error
-                .emit_diagnostics(&mut writer, &self.sources)
+                .emit(&mut writer, &self.sources)
                 .expect("failed writing info");
         }
 
@@ -445,17 +421,16 @@ impl ScriptEngine {
         let start = Instant::now();
         let func = &[&format!("day{}", day), "run"];
         let mut idx = 0;
-        let runtime = Arc::new(self.context.runtime());
+        let runtime = Arc::new(self.context.runtime()?);
         let result = loop {
-            let vm = Vm::new(runtime.clone(), self.unit.clone());
-            let mut execution: VmExecution = vm.execute(func, ()).expect("failed call");
+            let mut vm = Vm::new(runtime.clone(), self.unit.clone());
+            let mut execution = vm.execute(func, ())?;
 
-            let result = match self.rt.block_on(execution.async_complete()) {
+            let result = match self.rt.block_on(execution.async_complete()).into_result() {
                 Err(e) => {
                     let mut writer = StandardStream::stderr(ColorChoice::Always);
-                    e.emit_diagnostics(&mut writer, &self.sources)
+                    e.emit(&mut writer, &self.sources)
                         .expect("failed writing info");
-
                     println!("Day {:>2}     FAILED", day);
                     return Err(e.into());
                 }

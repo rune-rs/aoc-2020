@@ -2,8 +2,8 @@ use crate::utils::{iter, read_file};
 
 fn filter_inner(items) {
     while let Some(i) = items.next() {
-        if i.iter().sum() == 2020 {
-            return i.iter().product();
+        if i.iter().sum::<i64>() == 2020 {
+            return i.iter().product::<i64>();
         }
     }
 }
@@ -20,7 +20,7 @@ fn test_part1()
         1456
     ];
 
-    lines.sort_int();
+    lines.sort();
     assert_eq!(filter_inner(iter::all_pairs(lines)), 514579);
 }
 
@@ -36,7 +36,7 @@ fn test_part2()
         1456
     ];
 
-    lines.sort_int();
+    lines.sort();
     assert_eq!(filter_inner(iter::all_triples(lines)), 241861950);
 }
 
@@ -45,10 +45,10 @@ pub async fn run() {
     let lines = read_file("inputs/day1.txt")
         .await?
         .filter(|v| v != "")
-        .map(|v| std::string::parse_int(v).expect("invalid number"))
-        .collect_vec();
+        .map(|v| i64::parse(v).expect("invalid number"))
+        .collect::<Vec>();
 
-    lines.sort_int();
+    lines.sort();
     (filter_inner(iter::all_pairs(lines)), filter_inner(iter::all_triples(lines)))
 
 }

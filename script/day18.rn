@@ -54,10 +54,10 @@ fn parse_knuth(v) {
 }
 
 pub async fn run() {
-    let eqns = crate::utils::read_file("inputs/day18.txt").await?.filter(|v| v != "").collect_vec();
+    let eqns = crate::utils::read_file("inputs/day18.txt").await?.filter(|v| v != "").collect::<Vec>();
 
-    let t1 = eqns.iter().map(|v| parse_expr(v.chars().filter(|c| c != ' ' )).unwrap()).sum();
-    let t2 = eqns.iter().map(parse_knuth).sum();
+    let t1 = eqns.iter().map(|v| parse_expr(v.chars().filter(|c| c != ' ' )).unwrap()).sum::<i64>();
+    let t2 = eqns.iter().map(parse_knuth).sum::<i64>();
     (t1, t2)
 }
 

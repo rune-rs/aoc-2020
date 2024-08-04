@@ -55,7 +55,7 @@ fn rotl(tile) {
 fn rotl2(tile) {
     let rows = [];
     for i in 0..tile.rows.len() {
-        rows.push(tile.rows.iter().map(|v| v[tile.rows.len() - i - 1]).collect_vec());
+        rows.push(tile.rows.iter().map(|v| v[tile.rows.len() - i - 1]).collect::<Vec>());
     }
     Tile {
         id: tile.id,
@@ -66,7 +66,7 @@ fn rotl2(tile) {
 }
 
 fn flip(tile) {
-    let rows = tile.rows.iter().rev().collect_vec();
+    let rows = tile.rows.iter().rev().collect::<Vec>();
     Tile {
         id: tile.id,
         rows,
@@ -78,8 +78,8 @@ fn flip(tile) {
 impl Tile {
     fn from_lines(line_iter) {
         let title = line_iter.next()?;
-        let id = std::string::parse_int(title.split(' ').skip(1).next()?.replace(":", ""))?;
-        let rows = line_iter.collect_vec();
+        let id = std::i64::parse(title.split(' ').skip(1).next()?.replace(":", ""))?;
+        let rows = line_iter.collect::<Vec>();
         let s = Self {
             id,
             rows,
@@ -147,14 +147,14 @@ fn edges_to_tile_indices(edges, position) {
 async fn load_tiles(file) {
     let tile_data_iter = iter::batch_by_lines(read_file(file).await?);
 
-    Ok(tile_data_iter.map(Tile::from_lines).collect_vec())
+    Ok(tile_data_iter.map(Tile::from_lines).collect::<Vec>())
 }
 
 fn draw_grid(positions, open_edges) {
-    let min_x = positions.keys().fold(10000, |mx, c| std::int::min(mx, c.0));
-    let max_x = positions.keys().fold(-10000, |mx, c| std::int::max(mx, c.0));
-    let min_y = positions.keys().fold(10000, |mx, c| std::int::min(mx, c.1));
-    let max_y = positions.keys().fold(-10000, |mx, c| std::int::max(mx, c.1));
+    let min_x = positions.keys().fold(10000, |mx, c| std::i64::min(mx, c.0));
+    let max_x = positions.keys().fold(-10000, |mx, c| std::i64::max(mx, c.0));
+    let min_y = positions.keys().fold(10000, |mx, c| std::i64::min(mx, c.1));
+    let max_y = positions.keys().fold(-10000, |mx, c| std::i64::max(mx, c.1));
 
     println!("{}..{} {}..{}", min_x, max_x, min_y, max_y);
     for y in min_y..=max_y {
@@ -213,10 +213,10 @@ fn try_tile(positions, open_edges, tile, all_edges) {
 fn compose(tiles, t) {
     let remaining_tiles = tiles.clone();
     remaining_tiles.remove(t.id);
-    let open_edges = HashMap::from(edges_to_tile_indices(t.edges(), (0, 0)).iter());
+    let open_edges = HashMap::from_iter(edges_to_tile_indices(t.edges(), (0, 0)).iter());
     let positions = HashMap::new();
     positions.insert((0, 0), t);
-    let all_edges = HashSet::from(open_edges.keys());
+    let all_edges = HashSet::from_iter(open_edges.keys());
     let iters = 100000;
     while !remaining_tiles.is_empty() {
         let found = false;
@@ -240,10 +240,10 @@ fn compose(tiles, t) {
         }
     }
 
-    let min_x = positions.keys().fold(10000, |mx, c| std::int::min(mx, c.0));
-    let max_x = positions.keys().fold(-10000, |mx, c| std::int::max(mx, c.0));
-    let min_y = positions.keys().fold(10000, |mx, c| std::int::min(mx, c.1));
-    let max_y = positions.keys().fold(-10000, |mx, c| std::int::max(mx, c.1));
+    let min_x = positions.keys().fold(10000, |mx, c| i64::min(mx, c.0));
+    let max_x = positions.keys().fold(-10000, |mx, c| i64::max(mx, c.0));
+    let min_y = positions.keys().fold(10000, |mx, c| i64::min(mx, c.1));
+    let max_y = positions.keys().fold(-10000, |mx, c| i64::max(mx, c.1));
 
     let maybe_pos = [
         positions.get((min_x, min_y)),
@@ -253,7 +253,7 @@ fn compose(tiles, t) {
     ];
 
 
-    (maybe_pos.iter().map(Option::unwrap).map(|v| v.id).collect_vec(), positions)
+    (maybe_pos.iter().map(Option::unwrap).map(|v| v.id).collect::<Vec>(), positions)
 }
 
 pub fn inner_count_monsters(rows) {
@@ -268,7 +268,7 @@ pub fn inner_count_monsters(rows) {
                 .filter(|v| v.1 == '#')
                 .map(|v| (v.0, i))
             })
-        .collect_vec();
+        .collect::<Vec>();
 
     let all_hashes = HashSet::new();
     for y in 0..rows.len() {
@@ -311,17 +311,17 @@ pub fn inner_count_monsters(rows) {
 }
 
 pub fn merge_map(composed) {
-    let min_x = composed.keys().fold(10000, |mx, c| std::int::min(mx, c.0));
-    let max_x = composed.keys().fold(-10000, |mx, c| std::int::max(mx, c.0));
-    let min_y = composed.keys().fold(10000, |mx, c| std::int::min(mx, c.1));
-    let max_y = composed.keys().fold(-10000, |mx, c| std::int::max(mx, c.1));
-    let rows = (0..(max_y - min_y + 1) * 8).iter().map(|_| []).collect_vec();
+    let min_x = composed.keys().fold(10000, |mx, c| i64::min(mx, c.0));
+    let max_x = composed.keys().fold(-10000, |mx, c| i64::max(mx, c.0));
+    let min_y = composed.keys().fold(10000, |mx, c| i64::min(mx, c.1));
+    let max_y = composed.keys().fold(-10000, |mx, c| i64::max(mx, c.1));
+    let rows = (0..(max_y - min_y + 1) * 8).iter().map(|_| []).collect::<Vec>();
     let yoff = 0;
     for y in (min_y..=max_y).iter().rev() {
         for x in min_x..=max_x {
             let part_here = composed[(x, y)];
             for o in 0..8 {
-                rows[yoff + o].extend(part_here.rows[o + 1].chars().skip(1).take(8).collect_vec());
+                rows[yoff + o].extend(part_here.rows[o + 1].chars().skip(1).take(8).collect::<Vec>());
             }
         }
 
@@ -352,21 +352,21 @@ pub async fn run() {
     let tiles = load_tiles("inputs/day20.txt").await?;
 
     let root_tile = tiles[0];
-    let tiles_map = HashMap::from(tiles.iter().map(|v| (v.id, v)));
+    let tiles_map = HashMap::from_iter(tiles.iter().map(|v| (v.id, v)));
 
     let (corners, map) = compose(tiles_map, root_tile);
     let t2 = count_monsters(map);
     //let t2 = 0;
-    (corners.iter().product(), t2)
+    (corners.iter().product::<i64>(), t2)
 }
 
 #[test]
 async fn test_task1() {
     let tiles = load_tiles("inputs/day20_test.txt").await?;
-    let tiles_map = HashMap::from(tiles.iter().map(|v| (v.id, v)));
+    let tiles_map = HashMap::from_iter(tiles.iter().map(|v| (v.id, v)));
     let root_tile = tiles[0];
     let (corners, _) = compose(tiles_map, root_tile);
-    assert_eq!(corners.iter().product(), 20899048083289);
+    assert_eq!(corners.iter().product::<i64>(), 20899048083289);
 }
 
 
@@ -374,7 +374,7 @@ async fn test_task1() {
 #[test]
 async fn test_task2() {
     let tiles = load_tiles("inputs/day20_test.txt").await?;
-    let tiles_map = HashMap::from(tiles.iter().map(|v| (v.id, v)));
+    let tiles_map = HashMap::from_iter(tiles.iter().map(|v| (v.id, v)));
     let root_tile = tiles[0];
     let (_, map) = compose(tiles_map, root_tile);
 

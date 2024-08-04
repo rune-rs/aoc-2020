@@ -12,13 +12,13 @@ fn step(v, l) {
 }
 
 pub async fn run() {
-    let map = HashSet::from(read_file("inputs/day5.txt")
+    let map = HashSet::from_iter(read_file("inputs/day5.txt")
         .await?
         .map(|value| value
             .chars()
             .fold(0, step)));
 
-    let max = map.iter().fold(0, int::max);
+    let max = map.iter().fold(0, i64::max);
     let seat = map
         .iter()
         .find(|v| {
